@@ -10,9 +10,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 CORS(app)
 
-@app.before_first_request
-def create_tables():
-    db.create_all()
+
 
 
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -102,7 +100,8 @@ def analytics():
     })
 
 
-
+with app.app_context():
+    db.create_all()
 
 if __name__ == '__main__':
     app.run()
