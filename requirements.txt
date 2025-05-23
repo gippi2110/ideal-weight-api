@@ -1,4 +1,4 @@
-Flask
+Flask==2.3.3
 Flask-Cors
 Flask-SQLAlchemy
 Werkzeug
