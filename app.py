@@ -75,12 +75,18 @@ def overview():
         'avg_load': round(avg_load, 2),
         'avg_ideal_weight': round(avg_ideal_weight, 2)
     })
+
 @app.route('/history', methods=['GET'])
 def history():
     user_id = request.args.get('user_id')
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
-    cursor.execute("SELECT timestamp, load, temperature, pressure, hydraulic, ideal_weight FROM weight_history WHERE user_id=? ORDER BY timestamp DESC", (user_id,))
+    cursor.execute("""
+        SELECT timestamp, load, temperature, pressure, hydraulic, ideal_weight
+        FROM weight_history
+        WHERE user_id=?
+        ORDER BY timestamp DESC
+    """, (user_id,))
     rows = cursor.fetchall()
     conn.close()
 
@@ -95,6 +101,7 @@ def history():
         }
         for row in rows
     ]
+
     return jsonify(result)
 
 
