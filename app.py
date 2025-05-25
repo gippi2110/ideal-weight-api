@@ -104,7 +104,7 @@ def history():
         for row in rows
     ]
 
-    return jsonify(result)
+    return jsonify({result})
 
 
 
