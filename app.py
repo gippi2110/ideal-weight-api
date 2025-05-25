@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
+import sqlite3
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from models import db, User, Entry
 from utils import calculate_ideal_weight
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
