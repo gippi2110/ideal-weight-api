@@ -78,34 +78,38 @@ def overview():
         'avg_ideal_weight': round(avg_ideal_weight, 2)
     })
 
+from flask import Flask, request, jsonify
+import sqlite3
+
 @app.route('/history', methods=['GET'])
 def history():
     user_id = request.args.get('user_id')
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
+
     cursor.execute("""
         SELECT timestamp, load, temperature, pressure, hydraulic, ideal_weight
         FROM weight_history
         WHERE user_id=?
         ORDER BY timestamp DESC
     """, (user_id,))
+
     rows = cursor.fetchall()
     conn.close()
 
-    result = [
-        {
+    # Build a list of all rows
+    result = []
+    for row in rows:
+        result.append({
             "timestamp": row[0],
             "load": row[1],
             "temperature": row[2],
             "pressure": row[3],
             "hydraulic": row[4],
             "ideal_weight": row[5]
-        }
-        for row in rows
-    ]
+        })
 
-    return jsonify({result})
-
+    return jsonify(result)
 
 
 @app.route('/analytics', methods=['GET'])
