@@ -81,25 +81,22 @@ def overview():
 @app.route('/history', methods=['GET'])
 def history():
     user_id = request.args.get('user_id')
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT timestamp, load, temperature, pressure, hydraulic, ideal_weight FROM weight_history WHERE user_id=? ORDER BY timestamp DESC", (user_id,))
-    rows = cursor.fetchall()
-    conn.close()
+    if not user_id:
+        return jsonify({'error': 'User ID is required'}), 400
 
-    result = [
-        {
-            "timestamp": row[0],
-            "load": row[1],
-            "temperature": row[2],
-            "pressure": row[3],
-            "hydraulic": row[4],
-            "ideal_weight": row[5]
-        }
-        for row in rows
-    ]
+    entries = Entry.query.filter_by(user_id=user_id).order_by(Entry.timestamp.desc()).all()
+
+    result = [{
+        "timestamp": entry.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+        "load": entry.load,
+        "temperature": entry.temperature,
+        "pressure": entry.pressure,
+        "hydraulic": entry.hydraulic,
+        "ideal_weight": entry.ideal_weight
+    } for entry in entries]
 
     return jsonify(result)
+
 
 
 @app.route('/analytics', methods=['GET'])
