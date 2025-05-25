@@ -102,12 +102,20 @@ def history():
 @app.route('/analytics', methods=['GET'])
 def analytics():
     user_id = request.args.get('user_id')
-    entries = Entry.query.filter_by(user_id=user_id).all()
-    return jsonify({
-        'temp_vs_weight': [(e.temperature, e.ideal_weight) for e in entries],
-        'pressure_vs_weight': [(e.pressure, e.ideal_weight) for e in entries],
-        'hydraulic_vs_weight': [(e.hydraulic, e.ideal_weight) for e in entries]
-    })
+
+    # Query all entries for the user
+    entries = Entry.query.filter_by(user_id=user_id).order_by(Entry.timestamp).all()
+
+    # Structure the response data
+    data = {
+        'load_vs_weight': [[entry.load, entry.ideal_weight] for entry in entries],
+        'temp_vs_weight': [[entry.temperature, entry.ideal_weight] for entry in entries],
+        'pressure_vs_weight': [[entry.pressure, entry.ideal_weight] for entry in entries],
+        'hydraulic_vs_weight': [[entry.hydraulic, entry.ideal_weight] for entry in entries]
+    }
+
+    return jsonify(data)
+
 
 
 with app.app_context():
