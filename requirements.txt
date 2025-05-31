@@ -3,4 +3,5 @@ Flask-Cors
 Flask-SQLAlchemy
 Werkzeug
 gunicorn
-
+Flask-Mail
+itsdangerous
