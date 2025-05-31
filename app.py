@@ -41,27 +41,42 @@ def login():
     return jsonify({'error': 'Invalid credentials'}), 401
 
 
-import secrets
 
 @app.route('/forgot-password', methods=['POST'])
 def forgot_password():
     data = request.json
-    user = User.query.filter_by(email=data['email']).first()
-    if not user:
-        return jsonify({'message': 'No user found with this email'}), 404
+    email = data.get('email')
+    user = User.query.filter_by(email=email).first()
 
-    # Generate token
+    if not user:
+        return jsonify({'message': 'Email not found'}), 404
+
     token = secrets.token_urlsafe(32)
-    user.forgot_password_token = token
+    user.reset_token = token
     db.session.commit()
 
-    reset_link = f"https://yourdomain.com/reset-password?token={token}"  # Update your domain
-    send_reset_email(user.email, reset_link)
+    # Send reset email (mock or real service)
+    print(f"Use this token to reset password: {token}")
 
-    return jsonify({'message': 'Check your email for the reset link'})
+    return jsonify({'message': 'Check your email for reset instructions'})
 
 
 
+@app.route('/reset-password', methods=['POST'])
+def reset_password():
+    data = request.json
+    token = data.get('token')
+    new_password = data.get('new_password')
+
+    user = User.query.filter_by(reset_token=token).first()
+    if not user:
+        return jsonify({'message': 'Invalid or expired token'}), 400
+
+    user.set_password(new_password)
+    user.reset_token = None
+    db.session.commit()
+
+    return jsonify({'message': 'Password reset successful'})
 
 
 
