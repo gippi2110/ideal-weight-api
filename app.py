@@ -54,41 +54,6 @@ def login():
 
 
 
-@app.route('/forgot-password', methods=['POST'])
-def forgot_password():
-    data = request.get_json()
-    user = User.query.filter_by(email=data['email']).first()
-    if not user:
-        return jsonify({'message': 'Email not found'}), 404
-
-    token = serializer.dumps(user.email, salt='password-reset-salt')
-    reset_url = f"https://your-frontend.com/reset-password?token={token}"
-
-    msg = Message("Password Reset Request", sender=app.config['MAIL_USERNAME'], recipients=[user.email])
-    msg.body = f"Click the link to reset your password: {reset_url}"
-    mail.send(msg)
-
-    return jsonify({'message': 'Reset email sent'})
-
-
-
-@app.route('/reset-password', methods=['POST'])
-def reset_password():
-    data = request.get_json()
-    try:
-        email = serializer.loads(data['token'], salt='password-reset-salt', max_age=3600)
-    except:
-        return jsonify({'message': 'Invalid or expired token'}), 400
-
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({'message': 'User not found'}), 404
-
-    user.set_password(data['new_password'])
-    db.session.commit()
-
-    return jsonify({'message': 'Password has been reset'})
-
 
 
 @app.route('/calculate', methods=['POST'])
