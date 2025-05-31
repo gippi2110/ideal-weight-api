@@ -5,6 +5,18 @@ from flask_cors import CORS
 from models import db, User, Entry
 from utils import calculate_ideal_weight
 import secrets
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'your_email@gmail.com'
+app.config['MAIL_PASSWORD'] = 'your_email_password'
+mail = Mail(app)
+
+serializer = URLSafeTimedSerializer(app.config['MAIL_USERNAME'])
+
 
 
 app = Flask(__name__)
@@ -44,39 +56,38 @@ def login():
 
 @app.route('/forgot-password', methods=['POST'])
 def forgot_password():
-    data = request.json
-    email = data.get('email')
-    user = User.query.filter_by(email=email).first()
-
+    data = request.get_json()
+    user = User.query.filter_by(email=data['email']).first()
     if not user:
         return jsonify({'message': 'Email not found'}), 404
 
-    token = secrets.token_urlsafe(32)
-    user.reset_token = token
-    db.session.commit()
+    token = serializer.dumps(user.email, salt='password-reset-salt')
+    reset_url = f"https://your-frontend.com/reset-password?token={token}"
 
-    # Send reset email (mock or real service)
-    print(f"Use this token to reset password: {token}")
+    msg = Message("Password Reset Request", sender=app.config['MAIL_USERNAME'], recipients=[user.email])
+    msg.body = f"Click the link to reset your password: {reset_url}"
+    mail.send(msg)
 
-    return jsonify({'message': 'Check your email for reset instructions'})
+    return jsonify({'message': 'Reset email sent'})
 
 
 
 @app.route('/reset-password', methods=['POST'])
 def reset_password():
-    data = request.json
-    token = data.get('token')
-    new_password = data.get('new_password')
-
-    user = User.query.filter_by(reset_token=token).first()
-    if not user:
+    data = request.get_json()
+    try:
+        email = serializer.loads(data['token'], salt='password-reset-salt', max_age=3600)
+    except:
         return jsonify({'message': 'Invalid or expired token'}), 400
 
-    user.set_password(new_password)
-    user.reset_token = None
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+
+    user.set_password(data['new_password'])
     db.session.commit()
 
-    return jsonify({'message': 'Password reset successful'})
+    return jsonify({'message': 'Password has been reset'})
 
 
 
