@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from models import db, User, Entry
 from utils import calculate_ideal_weight
+import secrets
 
 
 app = Flask(__name__)
