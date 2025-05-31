@@ -5,3 +5,10 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     plan: free
+    envVars:
+      - key: MAIL_USERNAME
+        sync: false  # Set this in Render dashboard
+      - key: MAIL_PASSWORD
+        sync: false  # Set this in Render dashboard
+      - key: SECRET_KEY
+        sync: false  # Set this in Render dashboard
