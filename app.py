@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify, url_for
 import sqlite3
 from flask_sqlalchemy import SQLAlchemy
