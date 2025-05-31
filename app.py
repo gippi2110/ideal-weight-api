@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, url_for
 import sqlite3
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -7,17 +7,21 @@ from utils import calculate_ideal_weight
 import secrets
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
-
- 
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Example: Gmail SMTP
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')  # Set in environment
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')  # Set in environment
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')  # Required for serializer
 db.init_app(app)
 CORS(app)
-
-
-
+mail = Mail(app)
+serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -27,7 +31,6 @@ def register():
     if User.query.filter_by(email=data['email']).first():
         return jsonify({'error': 'Email already exists'}), 409
 
-    
     username = data.get('username')
     user = User(email=data['email'], username=username)
     user.set_password(data['password'])
@@ -43,9 +46,53 @@ def login():
         return jsonify({'message': 'Login successful', 'user_id': user.id})
     return jsonify({'error': 'Invalid credentials'}), 401
 
+@app.route('/forgot_password', methods=['POST'])
+def forgot_password():
+    data = request.json
+    email = data.get('email')
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({'error': 'Email not found'}), 404
 
+    # Generate reset token
+    token = serializer.dumps(user.email, salt='password-reset-salt')
+    user.reset_token = token
+    user.reset_token_expiration = datetime.utcnow() + timedelta(hours=1)
+    db.session.commit()
 
+    # Send reset email
+    reset_link = url_for('reset_password', token=token, _external=True)
+    msg = Message('Password Reset Request',
+                  sender=app.config['MAIL_USERNAME'],
+                  recipients=[user.email])
+    msg.body = f'To reset your password, click the link: {reset_link}\nThis link expires in 1 hour.'
+    try:
+        mail.send(msg)
+        return jsonify({'message': 'Password reset link sent to your email'})
+    except Exception as e:
+        return jsonify({'error': 'Failed to send email'}), 500
 
+@app.route('/reset_password/<token>', methods=['POST'])
+def reset_password(token):
+    try:
+        email = serializer.loads(token, salt='password-reset-salt', max_age=3600)  # 1 hour expiration
+    except:
+        return jsonify({'error': 'Invalid or expired reset link'}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user or user.reset_token != token or user.reset_token_expiration < datetime.utcnow():
+        return jsonify({'error': 'Invalid or expired reset link'}), 400
+
+    data = request.json
+    new_password = data.get('password')
+    if not new_password:
+        return jsonify({'error': 'Password is required'}), 400
+
+    user.set_password(new_password)
+    user.reset_token = None
+    user.reset_token_expiration = None
+    db.session.commit()
+    return jsonify({'message': 'Password reset successfully'})
 
 @app.route('/calculate', methods=['POST'])
 def calculate():
@@ -69,7 +116,6 @@ def calculate():
     db.session.add(entry)
     db.session.commit()
     return jsonify({'ideal_weight': ideal_weight})
-
 
 @app.route('/overview', methods=['GET'])
 def overview():
@@ -106,8 +152,6 @@ def history():
 
     return jsonify(result)
 
-
-
 @app.route('/analytics', methods=['GET'])
 def analytics():
     user_id = request.args.get('user_id')
@@ -124,8 +168,6 @@ def analytics():
     }
 
     return jsonify(data)
-
-
 
 with app.app_context():
     db.create_all()
