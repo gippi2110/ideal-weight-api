@@ -73,6 +73,42 @@ def forgot_password():
     except Exception as e:
         return jsonify({'error': 'Failed to send email'}), 500
 
+
+
+
+@app.route('/admin/register', methods=['POST'])
+def admin_register():
+    data = request.json
+    if Admin.query.filter_by(email=data['email']).first():
+        return jsonify({'error': 'Email already exists'}), 409
+
+    if Admin.query.filter_by(admin_id=data['admin_id']).first():
+        return jsonify({'error': 'Admin ID already exists'}), 409
+
+    admin = Admin(
+        email=data['email'],
+        username=data['username'],
+        admin_id=data['admin_id']
+    )
+    admin.set_password(data['password'])
+    db.session.add(admin)
+    db.session.commit()
+
+    return jsonify({'message': 'Admin registered successfully', 'admin_id': admin.admin_id})
+
+
+@app.route('/admin/login', methods=['POST'])
+def admin_login():
+    data = request.json
+    admin = Admin.query.filter_by(email=data['email']).first()
+    if admin and admin.check_password(data['password']):
+        return jsonify({'message': 'Login successful', 'admin_id': admin.admin_id, 'username': admin.username})
+    return jsonify({'error': 'Invalid credentials'}), 401
+
+
+
+
+
 @app.route('/reset_password/<token>', methods=['POST'])
 def reset_password(token):
     try:
