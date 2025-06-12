@@ -105,6 +105,36 @@ def admin_login():
         return jsonify({'message': 'Login successful', 'admin_id': admin.admin_id, 'username': admin.username})
     return jsonify({'error': 'Invalid credentials'}), 401
 
+# app.py
+
+from datetime import datetime
+
+@app.route('/admin/overview', methods=['GET'])
+def admin_overview():
+    admin_id = request.args.get('admin_id')
+    if not admin_id:
+        return jsonify({'error': 'Admin ID is required'}), 400
+
+    # Get users assigned to this admin
+    users = User.query.filter_by(admin_id=admin_id).all()
+    user_ids = [user.id for user in users]
+
+    # Query all entries by those users
+    total_entries = Entry.query.filter(Entry.user_id.in_(user_ids)).count()
+
+    # Today's date filter
+    today = datetime.now().date()
+    today_entries = Entry.query.filter(
+        Entry.user_id.in_(user_ids),
+        db.func.date(Entry.timestamp) == today
+    ).count()
+
+    return jsonify({
+        'user_count': len(users),
+        'total_entries': total_entries,
+        'today_entries': today_entries
+    })
+
 
 
 
