@@ -11,6 +11,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     reset_token = db.Column(db.String(100), nullable=True)
     reset_token_expiration = db.Column(db.DateTime, nullable=True)
+    admin_id = db.Column(db.String(20))  # This is the assigned administrator ID
 
 class Admin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
