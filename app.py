@@ -37,7 +37,7 @@ def register():
     user.set_password(data['password'])
     db.session.add(user)
     db.session.commit()
-    return jsonify({'message': 'Registered successfully'})
+    return jsonify({'message': 'Registered successfully', 'user_id': user.id}), 200
 
 @app.route('/login', methods=['POST'])
 def login():
